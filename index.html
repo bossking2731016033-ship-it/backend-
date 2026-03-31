@@ -5,38 +5,44 @@
   </head>
   <body>
 
-    <h1>My API Data 🚀</h1>
+  <h1>My API Data 🚀</h1>
 
-      <button onclick="getUser()">Get User</button>
-        <button onclick="getProducts()">Get Products</button>
+  <button onclick="getUser()">Get User</button>
+  <button onclick="getProducts()">Get Products</button>
 
-          <h2>User:</h2>
-            <pre id="user"></pre>
+  <h2>User:</h2>
+  <pre id="user"></pre>
 
-              <h2>Products:</h2>
-                <pre id="products"></pre>
+  <h2>Products:</h2>
+  <pre id="products"></pre>
 
-                  <script>
-                      const BASE_URL = "https://backend-3yxr.onrender.com";
+  <script>
+  const BASE_URL = "https://backend-3yxr.onrender.com";
 
-                          function getUser() {
-                                fetch(BASE_URL + "/user")
-                                        .then(res => res.json())
-                                                .then(data => {
-                                                          document.getElementById("user").innerText =
-                                                                      JSON.stringify(data, null, 2);
-                                                                              });
+  function getUser() {
+    fetch(BASE_URL + "/api/user")
+        .then(res => res.json())
+            .then(data => {
+                  document.getElementById("user").innerText = JSON.stringify(data, null, 2);
+                      })
+                          .catch(err => {
+                                console.log(err);
+                                      alert("Error fetching user");
+                                          });
+                                          }
+
+                                          function getProducts() {
+                                            fetch(BASE_URL + "/api/products")
+                                                .then(res => res.json())
+                                                    .then(data => {
+                                                          document.getElementById("products").innerText = JSON.stringify(data, null, 2);
+                                                              })
+                                                                  .catch(err => {
+                                                                        console.log(err);
+                                                                              alert("Error fetching products");
+                                                                                  });
                                                                                   }
+                                                                                  </script>
 
-                                                                                      function getProducts() {
-                                                                                            fetch(BASE_URL + "/products")
-                                                                                                    .then(res => res.json())
-                                                                                                            .then(data => {
-                                                                                                                      document.getElementById("products").innerText =
-                                                                                                                                  JSON.stringify(data, null, 2);
-                                                                                                                                          });
-                                                                                                                                              }
-                                                                                                                                                </script>
-
-                                                                                                                                                </body>
-                                                                                                                                                </html>
+                                                                                  </body>
+                                                                                  </html>
