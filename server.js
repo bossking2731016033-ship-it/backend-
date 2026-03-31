@@ -1,36 +1,64 @@
 const express = require("express");
 const cors = require("cors");
+const Razorpay = require("razorpay");
 
 const app = express();
-
-// Enable CORS (IMPORTANT)
 app.use(cors());
+app.use(express.json());
 
-// Root route (just for checking)
-app.get("/", (req, res) => {
-  res.send("Hello my name is Gagan 🚀");
-  });
+// ✅ Razorpay setup
+const razorpay = new Razorpay({
+  key_id: "rzp_test_SXR4QtfMPnVLcO",
+    key_secret:  "SBOHiyN4ca2qnr0NAwN52am4" // ⚠️ put your secret here
+    });
 
-  // API: Get User
-  app.get("/api/user", (req, res) => {
-    res.json({
-        name: "Gagan",
-            age: 20
-              });
-              });
+    // ✅ Home route
+    app.get("/", (req, res) => {
+      res.send("Backend is working 🚀");
+      });
 
-              // API: Get Products
-              app.get("/api/products", (req, res) => {
-                res.json([
-                    { id: 1, name: "Phone", price: 1500 },
-                        { id: 2, name: "Laptop", price: 50000 },
-                            { id: 3, name: "Headphones", price: 2000 }
-                              ]);
-                              });
+      // ✅ API test route
+      app.get("/api", (req, res) => {
+        res.json({ message: "API is working 🚀" });
+        });
 
-                              // Port setup
-                              const PORT = process.env.PORT || 3000;
+        // ✅ User API
+        app.get("/api/user", (req, res) => {
+          res.json({
+              name: "Gagan",
+                  age: 20
+                    });
+                    });
 
-                              app.listen(PORT, () => {
-                                console.log("Server running on port " + PORT);
-                                });
+                    // ✅ Products API
+                    app.get("/api/products", (req, res) => {
+                      res.json([
+                          { id: 1, name: "Phone", price: 1500 },
+                              { id: 2, name: "Laptop", price: 50000 },
+                                  { id: 3, name: "Headphones", price: 2000 }
+                                    ]);
+                                    });
+
+                                    // ✅ Razorpay create order API
+                                    app.post("/create-order", async (req, res) => {
+                                      const options = {
+                                          amount: 50000, // ₹500 in paise
+                                              currency: "INR",
+                                                  receipt: "order_rcptid_11"
+                                                    };
+
+                                                      try {
+                                                          const order = await razorpay.orders.create(options);
+                                                              res.json(order);
+                                                                } catch (err) {
+                                                                    console.log(err);
+                                                                        res.status(500).send("Error creating order");
+                                                                          }
+                                                                          });
+
+                                                                          // ✅ Port setup
+                                                                          const PORT = process.env.PORT || 5000;
+
+                                                                          app.listen(PORT, () => {
+                                                                            console.log(`Server running on port ${PORT}`);
+                                                                            });
