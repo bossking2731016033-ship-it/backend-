@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/bossking2731016033-ship-it/backend-#readme",
   "dependencies": {
+    "cors": "^2.8.6",
     "express": "^5.2.1"
   }
 }
