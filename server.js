@@ -1,64 +1,66 @@
 const express = require("express");
-const cors = require("cors");
 const Razorpay = require("razorpay");
+const cors = require("cors");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// ✅ Razorpay setup
+// Middlewares
+app.use(express.json());
+app.use(cors());
+
+// Razorpay instance
 const razorpay = new Razorpay({
   key_id: "rzp_test_SXR4QtfMPnVLcO",
-    key_secret:  "SBOHiyN4ca2qnr0NAwN52am4" // ⚠️ put your secret here
+    key_secret: "SBSBOHiyN4ca2qnr0NAwN52am4" // 🔴 PUT YOUR SECRET KEY HERE
     });
 
-    // ✅ Home route
+    // Test route
     app.get("/", (req, res) => {
-      res.send("Backend is working 🚀");
+      res.send("Backend is running 🚀");
       });
 
-      // ✅ API test route
-      app.get("/api", (req, res) => {
-        res.json({ message: "API is working 🚀" });
-        });
+      // 🔥 CREATE PAYMENT LINK API
+      app.post("/create-payment-link", async (req, res) => {
+        const { amount } = req.body;
 
-        // ✅ User API
-        app.get("/api/user", (req, res) => {
-          res.json({
-              name: "Gagan",
-                  age: 20
-                    });
-                    });
+          // Check amount
+            if (!amount) {
+                return res.status(400).json({ error: "Amount required" });
+                  }
 
-                    // ✅ Products API
-                    app.get("/api/products", (req, res) => {
-                      res.json([
-                          { id: 1, name: "Phone", price: 1500 },
-                              { id: 2, name: "Laptop", price: 50000 },
-                                  { id: 3, name: "Headphones", price: 2000 }
-                                    ]);
-                                    });
+                    try {
+                        const paymentLink = await razorpay.paymentLink.create({
+                              amount: amount * 100, // convert to paise
+                                    currency: "INR",
+                                          description: "Deposit Payment",
+                                                customer: {
+                                                        name: "User",
+                                                                email: "user@email.com",
+                                                                        contact: "9999999999"
+                                                                              },
+                                                                                    notify: {
+                                                                                            sms: true,
+                                                                                                    email: false
+                                                                                                          },
+                                                                                                                reminder_enable: true
+                                                                                                                    });
 
-                                    // ✅ Razorpay create order API
-                                    app.post("/create-order", async (req, res) => {
-                                      const options = {
-                                          amount: 50000, // ₹500 in paise
-                                              currency: "INR",
-                                                  receipt: "order_rcptid_11"
-                                                    };
+                                                                                                                        // Send short URL to app
+                                                                                                                            res.json({
+                                                                                                                                  payment_link: paymentLink.short_url
+                                                                                                                                      });
 
-                                                      try {
-                                                          const order = await razorpay.orders.create(options);
-                                                              res.json(order);
-                                                                } catch (err) {
-                                                                    console.log(err);
-                                                                        res.status(500).send("Error creating order");
-                                                                          }
-                                                                          });
+                                                                                                                                        } catch (error) {
+                                                                                                                                            console.log(error);
+                                                                                                                                                res.status(500).json({
+                                                                                                                                                      error: "Payment link creation failed"
+                                                                                                                                                          });
+                                                                                                                                                            }
+                                                                                                                                                            });
 
-                                                                          // ✅ Port setup
-                                                                          const PORT = process.env.PORT || 5000;
+                                                                                                                                                            // Server start
+                                                                                                                                                            const PORT = process.env.PORT || 3000;
 
-                                                                          app.listen(PORT, () => {
-                                                                            console.log(`Server running on port ${PORT}`);
-                                                                            });
+                                                                                                                                                            app.listen(PORT, () => {
+                                                                                                                                                              console.log("Server running on port " + PORT);
+                                                                                                                                                              });const
