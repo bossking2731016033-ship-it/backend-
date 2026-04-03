@@ -4,65 +4,49 @@ const Razorpay = require("razorpay");
 
 const app = express();
 
-// ✅ Middleware
 app.use(cors());
 app.use(express.json());
 
-// ✅ Razorpay setup
 const razorpay = new Razorpay({
   key_id: "rzp_test_SYtpc2E3wGGQ0O",
-    key_secret: "ZiEVyYyJTI3QOPJnH0rx9nZW" // 🔴 PUT YOUR REAL SECRET HERE
+    key_secret: "ZiEVyYyJTI3QOPJnH0rx9nZW"
     });
 
-    // ✅ Test route
+    // Test route
     app.get("/", (req, res) => {
       res.send("Backend running 🚀");
       });
 
-      // 🔥 CREATE PAYMENT LINK API
+      // Create payment link
       app.post("/create-payment-link", async (req, res) => {
         try {
             const { amount } = req.body;
 
-                // ❌ Validation
-                    if (!amount) {
-                          return res.status(400).json({
-                                  error: "Amount required"
-                                        });
-                                            }
+                if (!amount) {
+                      return res.status(400).json({
+                              error: "Amount required"
+                                    });
+                                        }
 
-                                                // ✅ Create payment link
-                                                    const paymentLink = await razorpay.paymentLink.create({
-                                                          amount: amount * 100, // convert ₹ to paisa
-                                                                currency: "INR",
-                                                                      description: "Tournament Deposit",
-                                                                            customer: {
-                                                                                    name: "Player",
-                                                                                            email: "test@test.com",
-                                                                                                    contact: "9999999999"
-                                                                                                          },
-                                                                                                                notify: {
-                                                                                                                        sms: true,
-                                                                                                                                email: false
-                                                                                                                                      },
-                                                                                                                                            reminder_enable: true
-                                                                                                                                                });
+                                            const paymentLink = await razorpay.paymentLink.create({
+                                                  amount: amount * 100,
+                                                        currency: "INR",
+                                                              description: "Tournament Payment",
+                                                                    reference_id: "USER_" + Date.now()
+                                                                        });
 
-                                                                                                                                                    // ✅ Send link to app
-                                                                                                                                                        res.json({
-                                                                                                                                                              payment_link: paymentLink.short_url
-                                                                                                                                                                  });
+                                                                            res.json({
+                                                                                  payment_link: paymentLink.short_url
+                                                                                      });
 
-                                                                                                                                                                    } catch (error) {
-                                                                                                                                                                        console.log(error);
+                                                                                        } catch (error) {
+                                                                                            console.log(error);
+                                                                                                res.status(500).json({
+                                                                                                      error: error.description || error.message
+                                                                                                          });
+                                                                                                            }
+                                                                                                            });
 
-                                                                                                                                                                            res.status(500).json({
-                                                                                                                                                                                  error: "Payment link creation failed"
-                                                                                                                                                                                      });
-                                                                                                                                                                                        }
-                                                                                                                                                                                        });
-
-                                                                                                                                                                                        // 🚀 Start server
-                                                                                                                                                                                        app.listen(3000, "0.0.0.0", () => {
-                                                                                                                                                                                          console.log("Server running on port 3000");
-                                                                                                                                                                                          });
+                                                                                                            app.listen(3000, "0.0.0.0", () => {
+                                                                                                              console.log("Server running on port 3000");
+                                                                                                              });const
