@@ -1,66 +1,68 @@
 const express = require("express");
-const Razorpay = require("razorpay");
 const cors = require("cors");
+const Razorpay = require("razorpay");
 
 const app = express();
 
-// Middlewares
-app.use(express.json());
+// ✅ Middleware
 app.use(cors());
+app.use(express.json());
 
-// Razorpay instance
+// ✅ Razorpay setup
 const razorpay = new Razorpay({
   key_id: "rzp_test_SXR4QtfMPnVLcO",
-    key_secret: "SBSBOHiyN4ca2qnr0NAwN52am4" // 🔴 PUT YOUR SECRET KEY HERE
+    key_secret: "YOUR_SECRET_KEY" // 🔴 PUT YOUR REAL SECRET HERE
     });
 
-    // Test route
+    // ✅ Test route
     app.get("/", (req, res) => {
-      res.send("Backend is running 🚀");
+      res.send("Backend running 🚀");
       });
 
       // 🔥 CREATE PAYMENT LINK API
       app.post("/create-payment-link", async (req, res) => {
-        const { amount } = req.body;
+        try {
+            const { amount } = req.body;
 
-          // Check amount
-            if (!amount) {
-                return res.status(400).json({ error: "Amount required" });
-                  }
+                // ❌ Validation
+                    if (!amount) {
+                          return res.status(400).json({
+                                  error: "Amount required"
+                                        });
+                                            }
 
-                    try {
-                        const paymentLink = await razorpay.paymentLink.create({
-                              amount: amount * 100, // convert to paise
-                                    currency: "INR",
-                                          description: "Deposit Payment",
-                                                customer: {
-                                                        name: "User",
-                                                                email: "user@email.com",
-                                                                        contact: "9999999999"
-                                                                              },
-                                                                                    notify: {
-                                                                                            sms: true,
-                                                                                                    email: false
+                                                // ✅ Create payment link
+                                                    const paymentLink = await razorpay.paymentLink.create({
+                                                          amount: amount * 100, // convert ₹ to paisa
+                                                                currency: "INR",
+                                                                      description: "Tournament Deposit",
+                                                                            customer: {
+                                                                                    name: "Player",
+                                                                                            email: "test@test.com",
+                                                                                                    contact: "9999999999"
                                                                                                           },
-                                                                                                                reminder_enable: true
-                                                                                                                    });
+                                                                                                                notify: {
+                                                                                                                        sms: true,
+                                                                                                                                email: false
+                                                                                                                                      },
+                                                                                                                                            reminder_enable: true
+                                                                                                                                                });
 
-                                                                                                                        // Send short URL to app
-                                                                                                                            res.json({
-                                                                                                                                  payment_link: paymentLink.short_url
-                                                                                                                                      });
+                                                                                                                                                    // ✅ Send link to app
+                                                                                                                                                        res.json({
+                                                                                                                                                              payment_link: paymentLink.short_url
+                                                                                                                                                                  });
 
-                                                                                                                                        } catch (error) {
-                                                                                                                                            console.log(error);
-                                                                                                                                                res.status(500).json({
-                                                                                                                                                      error: "Payment link creation failed"
-                                                                                                                                                          });
-                                                                                                                                                            }
-                                                                                                                                                            });
+                                                                                                                                                                    } catch (error) {
+                                                                                                                                                                        console.log(error);
 
-                                                                                                                                                            // Server start
-                                                                                                                                                            const PORT = process.env.PORT || 3000;
+                                                                                                                                                                            res.status(500).json({
+                                                                                                                                                                                  error: "Payment link creation failed"
+                                                                                                                                                                                      });
+                                                                                                                                                                                        }
+                                                                                                                                                                                        });
 
-                                                                                                                                                            app.listen(PORT, () => {
-                                                                                                                                                              console.log("Server running on port " + PORT);
-                                                                                                                                                              });const
+                                                                                                                                                                                        // 🚀 Start server
+                                                                                                                                                                                        app.listen(3000, "0.0.0.0", () => {
+                                                                                                                                                                                          console.log("Server running on port 3000");
+                                                                                                                                                                                          });const
