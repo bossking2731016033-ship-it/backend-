@@ -7,14 +7,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 🔑 Razorpay setup
 const razorpay = new Razorpay({
-  key_id: "rzp_test_SXR4QtfMPnVLcO",
+  key_id: "rzp_test_SYtpc2E3wGGQ0O",
     key_secret: "ZiEVyYyJTI3QOPJnH0rx9nZW"
     });
 
-    // Test route
+    // ✅ Test route
     app.get("/", (req, res) => {
-      res.send("Backend running 🚀");
+      res.send("Backend running");
       });
 
       // 🔥 CREATE PAYMENT LINK
@@ -31,49 +32,52 @@ const razorpay = new Razorpay({
                                             const paymentLink = await razorpay.paymentLink.create({
                                                   amount: amount * 100,
                                                         currency: "INR",
-                                                              description: "Tournament Deposit",
+                                                              description: "Deposit",
                                                                     reference_id: "USER_" + Date.now()
                                                                         });
 
-                                                                            res.json({
-                                                                                  payment_link: paymentLink.short_url,
-                                                                                        link_id: paymentLink.id
-                                                                                            });
+                                                                            // ✅ IMPORTANT: send BOTH values
+                                                                                res.json({
+                                                                                      payment_link: paymentLink.short_url,
+                                                                                            link_id: paymentLink.id
+                                                                                                });
 
-                                                                                              } catch (error) {
-                                                                                                  console.log(error);
-                                                                                                      res.status(500).json({
-                                                                                                            error: error.description || error.message
-                                                                                                                });
-                                                                                                                  }
-                                                                                                                  });
+                                                                                                  } catch (error) {
+                                                                                                      console.log(error);
+                                                                                                          res.status(500).json({
+                                                                                                                error: error.message
+                                                                                                                    });
+                                                                                                                      }
+                                                                                                                      });
 
-                                                                                                                  // 🔥 VERIFY PAYMENT
-                                                                                                                  app.get("/verify-payment/:id", async (req, res) => {
-                                                                                                                    try {
-                                                                                                                        const linkId = req.params.id;
+                                                                                                                      // 🔥 VERIFY PAYMENT
+                                                                                                                      app.get("/verify-payment/:id", async (req, res) => {
+                                                                                                                        try {
+                                                                                                                            const linkId = req.params.id;
 
-                                                                                                                            const link = await razorpay.paymentLink.fetch(linkId);
+                                                                                                                                const link = await razorpay.paymentLink.fetch(linkId);
 
-                                                                                                                                if (link.status === "paid") {
-                                                                                                                                      res.json({
-                                                                                                                                              success: true,
-                                                                                                                                                      amount: link.amount / 100
-                                                                                                                                                            });
-                                                                                                                                                                } else {
-                                                                                                                                                                      res.json({
-                                                                                                                                                                              success: false,
-                                                                                                                                                                                      status: link.status
-                                                                                                                                                                                            });
-                                                                                                                                                                                                }
+                                                                                                                                    if (link.status === "paid") {
+                                                                                                                                          res.json({
+                                                                                                                                                  success: true,
+                                                                                                                                                          amount: link.amount / 100
+                                                                                                                                                                });
+                                                                                                                                                                    } else {
+                                                                                                                                                                          res.json({
+                                                                                                                                                                                  success: false,
+                                                                                                                                                                                          status: link.status
+                                                                                                                                                                                                });
+                                                                                                                                                                                                    }
 
-                                                                                                                                                                                                  } catch (error) {
-                                                                                                                                                                                                      res.status(500).json({
-                                                                                                                                                                                                            error: error.message
-                                                                                                                                                                                                                });
-                                                                                                                                                                                                                  }
-                                                                                                                                                                                                                  });
-
-                                                                                                                                                                                                                  app.listen(3000, "0.0.0.0", () => {
-                                                                                                                                                                                                                    console.log("Server running 🚀");
+                                                                                                                                                                                                      } catch (error) {
+                                                                                                                                                                                                          res.status(500).json({
+                                                                                                                                                                                                                error: error.message
                                                                                                                                                                                                                     });
+                                                                                                                                                                                                                      }
+                                                                                                                                                                                                                      });
+
+                                                                                                                                                                                                                      // 🚀 START SERVER
+                                                                                                                                                                                                                      const PORT = process.env.PORT || 3000;
+                                                                                                                                                                                                                      app.listen(PORT, "0.0.0.0", () => {
+                                                                                                                                                                                                                        console.log("Server running on port " + PORT);
+                                                                                                                                                                                                                        });
