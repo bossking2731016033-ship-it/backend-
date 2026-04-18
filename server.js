@@ -26,7 +26,7 @@ const razorpay = new Razorpay({
           user_id: "1",
               name: "Player1",
                   ff_uid: "123456789",
-                      wallet: 0,
+                      wallet: 1000,
                           matches: [] // ✅ MY MATCHES
                             }
                             ];
