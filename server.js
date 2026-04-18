@@ -41,7 +41,7 @@ const razorpay = new Razorpay({
                                   id: 1,
                                       match_name: "Solo Battle",
                                           type: "solo",
-                                              time: "2026-04-15T19:00:00",
+                                              time: "2026-12-31T23:59:00",
                                                   entry_fee: 50,
                                                       max_players: 49,
                                                           players: [],
