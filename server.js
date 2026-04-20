@@ -1,312 +1,206 @@
-require("dotenv").config();
-
 const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const cors = require("cors");
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 // =======================
-// 🔥 CONNECT DB
+// 🔴 RAZORPAY CONFIG
 // =======================
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-    useUnifiedTopology: true
-    })
-    .then(()=>console.log("DB CONNECTED"))
-    .catch(err=>console.log(err));
+const razorpay = new Razorpay({
+  key_id: "rzp_test_SYtpc2E3wGGQ0O",
+    key_secret: "ZiEVyYyJTI3QOPJnH0rx9nZW"
+    });
+
+    const WEBHOOK_SECRET = "gagan@112233"; // your webhook secret
 
     // =======================
-    // 🔥 MODELS
+    // 🔥 USERS (IN MEMORY)
     // =======================
 
-    const User = mongoose.model("User", new mongoose.Schema({
-      name: String,
-        email: String,
-          password: String,
-            ff_uid: String,
-              wallet: { type: Number, default: 0 },
-                matches: Array
-                }));
-
-                const Match = mongoose.model("Match", new mongoose.Schema({
-                  match_name: String,
-                    type: String,
-                      time: String,
-                        entry_fee: Number,
-                          max_players: Number,
-                            players: Array,
-                              room_id: String,
-                                password: String,
-                                  status: String
-                                  }));
-
-                                  // =======================
-                                  // 🔴 RAZORPAY
-                                  // =======================
-
-                                  const razorpay = new Razorpay({
-                                    key_id: process.env.RAZORPAY_KEY,
-                                      key_secret: process.env.RAZORPAY_SECRET
-                                      });
-
-                                      // =======================
-                                      // 🔐 AUTH MIDDLEWARE
-                                      // =======================
-
-                                      function auth(req, res, next) {
-
-                                        const token = req.headers["auth"];
-
-                                          if (!token) {
-                                              return res.json({ status: "failed", message: "No token" });
-                                                }
-
-                                                  try {
-                                                      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                                                          req.user = decoded;
-                                                              next();
-                                                                } catch {
-                                                                    res.json({ status: "failed", message: "Invalid token" });
-                                                                      }
-                                                                      }
-
-                                                                      // =======================
-                                                                      // 🔥 REGISTER
-                                                                      // =======================
-
-                                                                      app.post("/register", async (req, res) => {
-
-                                                                        try {
-
-                                                                            const { name, email, password } = req.body;
-
-                                                                                const exist = await User.findOne({ email });
-
-                                                                                    if (exist) {
-                                                                                          return res.json({ status: "failed", message: "User exists" });
-                                                                                              }
-
-                                                                                                  const hash = await bcrypt.hash(password, 10);
-
-                                                                                                      const user = new User({
-                                                                                                            name,
-                                                                                                                  email,
-                                                                                                                        password: hash,
-                                                                                                                              wallet: 0,
-                                                                                                                                    matches: []
-                                                                                                                                        });
-
-                                                                                                                                            await user.save();
-
-                                                                                                                                                res.json({ status: "success", message: "Registered" });
-
-                                                                                                                                                  } catch {
-                                                                                                                                                      res.json({ status: "failed", message: "Error" });
-                                                                                                                                                        }
-                                                                                                                                                        });
-
-                                                                                                                                                        // =======================
-                                                                                                                                                        // 🔥 LOGIN
-                                                                                                                                                        // =======================
-
-                                                                                                                                                        app.post("/login", async (req, res) => {
-
-                                                                                                                                                          try {
-
-                                                                                                                                                              const { email, password } = req.body;
-
-                                                                                                                                                                  const user = await User.findOne({ email });
-
-                                                                                                                                                                      if (!user) {
-                                                                                                                                                                            return res.json({ status: "failed", message: "User not found" });
-                                                                                                                                                                                }
-
-                                                                                                                                                                                    const ok = await bcrypt.compare(password, user.password);
-
-                                                                                                                                                                                        if (!ok) {
-                                                                                                                                                                                              return res.json({ status: "failed", message: "Wrong password" });
-                                                                                                                                                                                                  }
-
-                                                                                                                                                                                                      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-
-                                                                                                                                                                                                          res.json({
-                                                                                                                                                                                                                status: "success",
-                                                                                                                                                                                                                      token: token,
-                                                                                                                                                                                                                            user_id: user._id,
-                                                                                                                                                                                                                                  wallet: user.wallet
-                                                                                                                                                                                                                                      });
-
-                                                                                                                                                                                                                                        } catch {
-                                                                                                                                                                                                                                            res.json({ status: "failed", message: "Login error" });
-                                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                                              });
-
-                                                                                                                                                                                                                                              // =======================
-                                                                                                                                                                                                                                              // 🔥 GET MATCHES
-                                                                                                                                                                                                                                              // =======================
-
-                                                                                                                                                                                                                                              app.get("/get-matches", async (req, res) => {
-
-                                                                                                                                                                                                                                                try {
-                                                                                                                                                                                                                                                    const matches = await Match.find();
-                                                                                                                                                                                                                                                        res.json({ status: "success", data: matches });
-                                                                                                                                                                                                                                                          } catch {
-                                                                                                                                                                                                                                                              res.json({ status: "failed", message: "Error" });
-                                                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                                                });
-
-                                                                                                                                                                                                                                                                // =======================
-                                                                                                                                                                                                                                                                // 🔥 JOIN MATCH
-                                                                                                                                                                                                                                                                // =======================
-
-                                                                                                                                                                                                                                                                app.post("/join-match", auth, async (req, res) => {
-
-                                                                                                                                                                                                                                                                  try {
-
-                                                                                                                                                                                                                                                                      const { match_id, ff_uid } = req.body;
-
-                                                                                                                                                                                                                                                                          const user = await User.findById(req.user.id);
-                                                                                                                                                                                                                                                                              const match = await Match.findById(match_id);
-
-                                                                                                                                                                                                                                                                                  if (!user || !match) {
-                                                                                                                                                                                                                                                                                        return res.json({ status: "failed", message: "Invalid" });
-                                                                                                                                                                                                                                                                                            }
-
-                                                                                                                                                                                                                                                                                                if (match.status !== "upcoming") {
-                                                                                                                                                                                                                                                                                                      return res.json({ status: "failed", message: "Match not joinable" });
-                                                                                                                                                                                                                                                                                                          }
-
-                                                                                                                                                                                                                                                                                                              if (match.players.length >= match.max_players) {
-                                                                                                                                                                                                                                                                                                                    return res.json({ status: "failed", message: "Match full" });
-                                                                                                                                                                                                                                                                                                                        }
-
-                                                                                                                                                                                                                                                                                                                            const already = match.players.find(p => p.user_id == user._id);
-
-                                                                                                                                                                                                                                                                                                                                if (already) {
-                                                                                                                                                                                                                                                                                                                                      return res.json({
-                                                                                                                                                                                                                                                                                                                                              status: "success",
-                                                                                                                                                                                                                                                                                                                                                      message: "Already joined",
-                                                                                                                                                                                                                                                                                                                                                              room_id: match.room_id,
-                                                                                                                                                                                                                                                                                                                                                                      password: match.password,
-                                                                                                                                                                                                                                                                                                                                                                              wallet: user.wallet
-                                                                                                                                                                                                                                                                                                                                                                                    });
-                                                                                                                                                                                                                                                                                                                                                                                        }
-
-                                                                                                                                                                                                                                                                                                                                                                                            if (user.wallet < match.entry_fee) {
-                                                                                                                                                                                                                                                                                                                                                                                                  return res.json({ status: "failed", message: "Low balance" });
-                                                                                                                                                                                                                                                                                                                                                                                                      }
-
-                                                                                                                                                                                                                                                                                                                                                                                                          user.wallet -= match.entry_fee;
-
-                                                                                                                                                                                                                                                                                                                                                                                                              match.players.push({
-                                                                                                                                                                                                                                                                                                                                                                                                                    user_id: user._id,
-                                                                                                                                                                                                                                                                                                                                                                                                                          ff_uid: ff_uid
-                                                                                                                                                                                                                                                                                                                                                                                                                              });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                  user.matches.push({
-                                                                                                                                                                                                                                                                                                                                                                                                                                        match_id: match._id,
-                                                                                                                                                                                                                                                                                                                                                                                                                                              room_id: match.room_id,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                    password: match.password
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                            await user.save();
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                await match.save();
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                    res.json({
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          status: "success",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                message: "Joined",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      room_id: match.room_id,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            password: match.password,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  wallet: user.wallet
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } catch {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            res.json({ status: "failed", message: "Join error" });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              // =======================
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              // 🔥 WALLET
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              // =======================
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              app.get("/wallet", auth, async (req, res) => {
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                const user = await User.findById(req.user.id);
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  res.json({
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      status: "success",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          wallet: user.wallet
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // =======================
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // 🔥 PAYMENT LINK
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // =======================
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            app.post("/create-payment-link", auth, async (req, res) => {
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              try {
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const { amount } = req.body;
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      const link = await razorpay.paymentLink.create({
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            amount: amount * 100,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  currency: "INR",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        description: "Wallet Deposit",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              notes: { user_id: req.user.id }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      res.json({ status: "success", link: link.short_url });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } catch {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            res.json({ status: "failed", message: "Payment error" });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              // =======================
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              // 🔥 WEBHOOK
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              // =======================
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              app.post("/razorpay-webhook", (req, res) => {
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                const shasum = crypto.createHmac("sha256", process.env.WEBHOOK_SECRET);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  shasum.update(JSON.stringify(req.body));
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    const digest = shasum.digest("hex");
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      if (digest !== req.headers["x-razorpay-signature"]) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          return res.status(400).send("Invalid signature");
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              if (req.body.event === "payment_link.paid") {
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const data = req.body.payload.payment_link.entity;
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      const amount = data.amount_paid / 100;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          const user_id = data.notes.user_id;
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              User.findById(user_id).then(user => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (user) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            user.wallet += amount;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    user.save();
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  res.json({ status: "ok" });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // =======================
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // 🚀 START SERVER
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  // =======================
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  app.listen(process.env.PORT, () => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    console.log("SERVER RUNNING ON PORT " + process.env.PORT);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    });require
+    let users = [
+      {
+          user_id: "1",
+              name: "Player1",
+                  ff_uid: "123456789",
+                      wallet: 1000, // 🔥 START WITH MONEY FOR TEST
+                          matches: []
+                            }
+                            ];
+
+                            // =======================
+                            // 🔥 MATCHES
+                            // =======================
+
+                            let matches = [
+                              {
+                                  id: 1,
+                                      match_name: "Solo Battle",
+                                          type: "solo",
+                                              time: "2030-04-20T19:00:00", // future time
+                                                  entry_fee: 50,
+                                                      max_players: 49,
+                                                          players: [],
+                                                              room_id: "123456",
+                                                                  password: "abc123",
+                                                                      status: "upcoming"
+                                                                        }
+                                                                        ];
+
+                                                                        // =======================
+                                                                        // 🔥 UPDATE MATCH STATUS
+                                                                        // =======================
+
+                                                                        function updateMatchStatus(match) {
+                                                                          let now = new Date();
+                                                                            let matchTime = new Date(match.time);
+
+                                                                              if (match.status === "cancelled") return;
+
+                                                                                if (now < matchTime) match.status = "upcoming";
+                                                                                  else match.status = "live";
+                                                                                  }
+
+                                                                                  // =======================
+                                                                                  // 🔥 GET MATCHES
+                                                                                  // =======================
+
+                                                                                  app.get("/get-matches", (req, res) => {
+                                                                                    matches.forEach(updateMatchStatus);
+                                                                                      res.json(matches);
+                                                                                      });
+
+                                                                                      // =======================
+                                                                                      // 🔥 WALLET
+                                                                                      // =======================
+
+                                                                                      app.get("/wallet/:id", (req, res) => {
+                                                                                        let user = users.find(u => u.user_id == req.params.id);
+                                                                                          res.json({ wallet: user ? user.wallet : 0 });
+                                                                                          });
+
+                                                                                          // =======================
+                                                                                          // 🔥 TEST ADD MONEY (IMPORTANT)
+                                                                                          // =======================
+
+                                                                                          app.get("/add-money/:id/:amount", (req, res) => {
+                                                                                            let user = users.find(u => u.user_id == req.params.id);
+
+                                                                                              if (!user) return res.json({ error: "User not found" });
+
+                                                                                                user.wallet += Number(req.params.amount);
+
+                                                                                                  res.json({
+                                                                                                      message: "Money added",
+                                                                                                          wallet: user.wallet
+                                                                                                            });
+                                                                                                            });
+
+                                                                                                            // =======================
+                                                                                                            // 🔥 JOIN MATCH
+                                                                                                            // =======================
+
+                                                                                                            app.post("/join-match", (req, res) => {
+
+                                                                                                              const { user_id, match_id, ff_uid } = req.body;
+
+                                                                                                                let user = users.find(u => u.user_id == user_id);
+                                                                                                                  let match = matches.find(m => m.id == match_id);
+
+                                                                                                                    if (!user || !match) {
+                                                                                                                        return res.json({ status: "error", message: "Invalid user or match" });
+                                                                                                                          }
+
+                                                                                                                            updateMatchStatus(match);
+
+                                                                                                                              if (match.status !== "upcoming") {
+                                                                                                                                  return res.json({ status: "error", message: "Match not joinable" });
+                                                                                                                                    }
+
+                                                                                                                                      if (match.players.length >= match.max_players) {
+                                                                                                                                          return res.json({ status: "error", message: "Match full" });
+                                                                                                                                            }
+
+                                                                                                                                              let already = match.players.find(p => p.user_id == user_id);
+
+                                                                                                                                                if (already) {
+                                                                                                                                                    return res.json({
+                                                                                                                                                          status: "success",
+                                                                                                                                                                message: "Already joined",
+                                                                                                                                                                      room_id: match.room_id,
+                                                                                                                                                                            password: match.password
+                                                                                                                                                                                });
+                                                                                                                                                                                  }
+
+                                                                                                                                                                                    if (user.wallet < match.entry_fee) {
+                                                                                                                                                                                        return res.json({ status: "error", message: "Low balance" });
+                                                                                                                                                                                          }
+
+                                                                                                                                                                                            // deduct money
+                                                                                                                                                                                              user.wallet -= match.entry_fee;
+
+                                                                                                                                                                                                // add player
+                                                                                                                                                                                                  match.players.push({
+                                                                                                                                                                                                      user_id,
+                                                                                                                                                                                                          name: user.name,
+                                                                                                                                                                                                              ff_uid
+                                                                                                                                                                                                                });
+
+                                                                                                                                                                                                                  // save match in user
+                                                                                                                                                                                                                    user.matches.push({
+                                                                                                                                                                                                                        match_id: match.id,
+                                                                                                                                                                                                                            room_id: match.room_id,
+                                                                                                                                                                                                                                password: match.password
+                                                                                                                                                                                                                                  });
+
+                                                                                                                                                                                                                                    res.json({
+                                                                                                                                                                                                                                        status: "success",
+                                                                                                                                                                                                                                            message: "Joined",
+                                                                                                                                                                                                                                                room_id: match.room_id,
+                                                                                                                                                                                                                                                    password: match.password,
+                                                                                                                                                                                                                                                        wallet: user.wallet
+                                                                                                                                                                                                                                                          });
+                                                                                                                                                                                                                                                          });
+
+                                                                                                                                                                                                                                                          // =======================
+                                                                                                                                                                                                                                                          // 🔥 MY MATCHES
+                                                                                                                                                                                                                                                          // =======================
+
+                                                                                                                                                                                                                                                          app.get("/my-matches/:id", (req, res) => {
+                                                                                                                                                                                                                                                            let user = users.find(u => u.user_id == req.params.id);
+                                                                                                                                                                                                                                                              res.json(user ? user.matches : []);
+                                                                                                                                                                                                                                                              });
+
+                                                                                                                                                                                                                                                              // =======================
+                                                                                                                                                                                                                                                              // 🔥 CANCEL MATCH (REFUND)
+                                                                                                                                                                                                                                                              // =======================
+
+                                                                                                                                                                                                                                                              app.post("/cancel-match", (req, res) => {
+
+                                                                                                                                                                                                                                                                const { match_id } = req.body;
+
+                                                                                                                                                                                                                                                                  let match = matches.find(m => m.id == match_id);
+
+                                                                                                                                                                                                                                                                    if (!match) return res.json({ error: "Match not found" });
+
+                                                                                                                                                                                                                                                                      match.status = "cancelled";
+
+                                                                                                                                                                                                                                                                        match.players.forEach(p => {
+                                                                                                                                                                                                                                                                            let user = users.find(u => u.user_id == p.user_id);
+                                                                                                                                                                                                                                                                                if (user) user.wallet += match.entry_fee;
+                                                                                                                                                                                                                                                                                  });
+
+                                                                                                                                                                                                                                                                                    res.json({ message: "Match cancelled & refunded" });
+                                                                                                                                                                                                                                                                                    });
+
+                                                                                                                                                                                                                                                                                    // =======================
+                                                                                                                                                                                                                                                                                    // 🔥 START SERVER
+                                                                                                                                                                                                                                                                                    // =======================
+
+                                                                                                                                                                                                                                                                                    app.listen(3000, () => {
+                                                                                                                                                                                                                                                                                      console.log("🔥 SERVER RUNNING ON PORT 3000");
+                                                                                                                                                                                                                                                                                      });
